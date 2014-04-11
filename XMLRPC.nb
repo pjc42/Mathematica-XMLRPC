@@ -1,0 +1,915 @@
+Notebook[{
+Cell["XML-RPC", "Section"],
+
+Cell[CellGroupData[{
+
+Cell["Examples", "Subsubtitle"],
+
+Cell[" ", "Text",
+ Editable->False,
+ Selectable->False,
+ CellFrame->{{0, 0}, {0, 0.5}},
+ ShowCellBracket->False,
+ CellMargins->{{0, 0}, {1, 1}},
+ CellElementSpacings->{"CellMinHeight"->1},
+ CellFrameMargins->0,
+ CellFrameColor->RGBColor[0, 0, 1],
+ CellSize->{Inherited, 3}],
+
+Cell[TextData[{
+ "A normal call\n",
+ StyleBox["XMLRPCCall[url, function, arg1, arg2,...]", "Code"]
+}], "Text"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"XMLRPCCall", "[", "\[IndentingNewLine]", 
+  RowBox[{
+  "\"\<https://pypi.python.org/pypi\>\"", ",", "\[IndentingNewLine]", 
+   "\"\<package_releases\>\"", ",", "\"\<numpy\>\""}], "]"}]], "Input"],
+
+Cell[BoxData[
+ RowBox[{"{", "\<\"1.8.1\"\>", "}"}]], "Output"]
+}, {1, 2}]],
+
+Cell[" ", "Text",
+ Editable->False,
+ Selectable->False,
+ CellFrame->{{0, 0}, {0, 0.5}},
+ ShowCellBracket->False,
+ CellMargins->{{0, 0}, {1, 1}},
+ CellElementSpacings->{"CellMinHeight"->1},
+ CellFrameMargins->0,
+ CellFrameColor->RGBColor[0, 0, 1],
+ CellSize->{Inherited, 3}],
+
+Cell[TextData[{
+ "Multiple simultaneous calls \n",
+ StyleBox["XMLRPCCall[url,{ {function1, args1...}, {function2, args2...}, ... \
+}]", "Code"]
+}], "Text",
+ FontSize->14],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"XMLRPCCall", "[", "\[IndentingNewLine]", 
+  RowBox[{
+  "\"\<https://pypi.python.org/pypi\>\"", ",", "\[IndentingNewLine]", 
+   RowBox[{"{", "\[IndentingNewLine]", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"\"\<package_releases\>\"", ",", "\"\<matplotlib\>\""}], "}"}], 
+     ",", "\[IndentingNewLine]", 
+     RowBox[{"{", 
+      RowBox[{"\"\<package_releases\>\"", ",", "\"\<numpy\>\""}], "}"}], ",", 
+     "\[IndentingNewLine]", 
+     RowBox[{"{", 
+      RowBox[{"\"\<package_releases\>\"", ",", "\"\<scipy\>\""}], "}"}]}], 
+    "\[IndentingNewLine]", "}"}]}], "]"}]], "Input"],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{
+   RowBox[{"{", "\<\"1.3.1\"\>", "}"}], ",", 
+   RowBox[{"{", "\<\"1.8.1\"\>", "}"}], ",", 
+   RowBox[{"{", "\<\"0.13.3\"\>", "}"}]}], "}"}]], "Output"]
+}, {1, 2}]],
+
+Cell[" ", "Text",
+ Editable->False,
+ Selectable->False,
+ CellFrame->{{0, 0}, {0, 0.5}},
+ ShowCellBracket->False,
+ CellMargins->{{0, 0}, {1, 1}},
+ CellElementSpacings->{"CellMinHeight"->1},
+ CellFrameMargins->0,
+ CellFrameColor->RGBColor[0, 0, 1],
+ CellSize->{Inherited, 3}],
+
+Cell["Set up a convenience function", "Text",
+ FontSize->14],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{"ClearAll", "[", "pypi", "]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{
+     RowBox[{"pypi", "[", "function_String", "]"}], "[", "args___", "]"}], ":=", 
+    RowBox[{"XMLRPCCall", "[", 
+     RowBox[{
+     "\"\<https://pypi.python.org/pypi\>\"", ",", "function", ",", "args"}], 
+     "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"pypi", "[", "\"\<package_releases\>\"", "]"}], "[", 
+  "\"\<scipy\>\"", "]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"pypi", "[", "\"\<package_releases\>\"", "]"}], "[", 
+  "\"\<numpy\>\"", "]"}], "\[IndentingNewLine]"}], "Input"],
+
+Cell[BoxData[
+ RowBox[{"{", "\<\"0.13.3\"\>", "}"}]], "Output"],
+
+Cell[BoxData[
+ RowBox[{"{", "\<\"1.8.1\"\>", "}"}]], "Output"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Possible issues", "Subsubtitle"],
+
+Cell["Base64 is not supported, treated as string", "Subsubsection"],
+
+Cell["\<\
+An empty array and an empty struct are indistinguisable in the parsed result\
+\>", "Subsubsection"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Code", "Subsubtitle",
+ InitializationCell->True,
+ InitializationGroup->True],
+
+Cell[BoxData[
+ RowBox[{"BeginPackage", "[", 
+  RowBox[{"\"\<XMLRPC`\>\"", ",", 
+   RowBox[{"{", "\"\<JLink`\>\"", "}"}]}], "]"}]], "Input",
+ InitializationGroup->True],
+
+Cell[BoxData[
+ RowBox[{"\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"Unprotect", "[", "XMLRPCCall", "]"}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"XMLRPCCall", "::", "usage"}], "=", 
+     "\"\<XMLRPCCall[url, method, args...] send an XML-RPC request\>\""}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"XMLRPC", "::", "parseu"}], "=", 
+     "\"\<Unknown element when parsing response `1`\>\""}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"XMLRPC", "::", "notimpl"}], "=", 
+     "\"\<Not implemented (`1`)\>\""}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"XMLRPC", "::", "httperr"}], "=", 
+     "\"\<HTTP request failed (`1`)\>\""}], ";"}], 
+   "\[IndentingNewLine]"}]}]], "Input",
+ InitializationGroup->True],
+
+Cell[BoxData[{
+ RowBox[{"Begin", "[", "\"\<`Private`\>\"", "]"}], "\[IndentingNewLine]", 
+ RowBox[{"ClearAll", "[", 
+  RowBox[{
+  "parseResponse", ",", "httpPOST", ",", "strToNum", ",", "createRequest", 
+   ",", "encodeArgument"}], "]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"$packageVersion", "=", "\"\<0.1\>\""}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"$debug", "=", "False"}], ";"}]}], "Input",
+ InitializationGroup->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "import", " ", "integers", " ", "that", " ", "might", " ", "be", " ", 
+    "negative", " ", "and", " ", "larger", " ", "than", " ", "int32", " ", 
+    "without", " ", "having", " ", "to", " ", "use", " ", "ToExpression", " ",
+     "or", " ", "ImportString"}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{"strToNum", "[", "s_String", "]"}], ":=", 
+   RowBox[{
+    RowBox[{"System`Convert`TableDump`ParseTable", "[", "\[IndentingNewLine]", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"{", "s", "}"}], "}"}], ",", "\[IndentingNewLine]", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"{", "\"\< \>\"", "}"}], ",", 
+          RowBox[{"{", "\"\< \>\"", "}"}]}], "}"}], ",", 
+        RowBox[{"{", 
+         RowBox[{"\"\<-\>\"", ",", "\"\<+\>\""}], "}"}], ",", "\"\<.\>\""}], 
+       "}"}], ",", "False"}], "]"}], "[", 
+    RowBox[{"[", 
+     RowBox[{"1", ",", "1"}], "]"}], "]"}]}]}]], "Input",
+ InitializationGroup->True],
+
+Cell[CellGroupData[{
+
+Cell["HTTP POST", "Subsubsection",
+ InitializationGroup->True],
+
+Cell[BoxData[
+ RowBox[{"\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{
+     RowBox[{"httpPOST", "::", "usage"}], "=", 
+     "\"\<httpPOST[url,body] send a POST request\>\""}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"httpPOST", "[", 
+     RowBox[{"url_String", ",", "body_String"}], "]"}], ":=", 
+    RowBox[{"Module", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{
+       "requestJsonString", ",", "client", ",", "method", ",", "entity", ",", 
+        "responseCode", ",", "response", ",", "responseRules", ",", 
+        "responseExpression"}], "}"}], ",", "\[IndentingNewLine]", 
+      RowBox[{"JavaBlock", "[", "\[IndentingNewLine]", 
+       RowBox[{
+        RowBox[{"client", "=", 
+         RowBox[{
+         "JavaNew", "[", "\"\<org.apache.commons.httpclient.HttpClient\>\"", 
+          "]"}]}], ";", "\[IndentingNewLine]", 
+        RowBox[{"method", "=", 
+         RowBox[{"JavaNew", "[", 
+          RowBox[{
+          "\"\<org.apache.commons.httpclient.methods.PostMethod\>\"", ",", 
+           "url"}], "]"}]}], ";", "\[IndentingNewLine]", 
+        RowBox[{"entity", "=", 
+         RowBox[{"JavaNew", "[", 
+          RowBox[{
+          "\"\<org.apache.commons.httpclient.methods.StringRequestEntity\>\"",
+            ",", "body"}], "]"}]}], ";", "\[IndentingNewLine]", 
+        RowBox[{"method", "@", 
+         RowBox[{"setRequestEntity", "[", "entity", "]"}]}], ";", 
+        "\[IndentingNewLine]", 
+        RowBox[{"method", "@", 
+         RowBox[{"setRequestHeader", "[", 
+          RowBox[{"\"\<Content-Type\>\"", ",", "\"\<text/xml\>\""}], "]"}]}], 
+        ";", "\[IndentingNewLine]", 
+        RowBox[{"responseCode", "=", 
+         RowBox[{"client", "@", 
+          RowBox[{"executeMethod", "[", "method", "]"}]}]}], ";", 
+        "\[IndentingNewLine]", 
+        RowBox[{"If", "[", 
+         RowBox[{
+          RowBox[{"responseCode", "===", "200"}], ",", "\[IndentingNewLine]", 
+          
+          RowBox[{"method", "@", 
+           RowBox[{"getResponseBodyAsString", "[", "]"}]}], 
+          "\[IndentingNewLine]", ",", "\[IndentingNewLine]", 
+          RowBox[{
+           RowBox[{"Message", "[", 
+            RowBox[{
+             RowBox[{"XMLRPC", "::", "httperr"}], ",", "responseCode"}], 
+            "]"}], ";", "\[IndentingNewLine]", "$Failed"}]}], 
+         "\[IndentingNewLine]", "]"}]}], "\[IndentingNewLine]", "]"}]}], 
+     "]"}]}]}]}]], "Input",
+ InitializationGroup->True]
+}, Closed]],
+
+Cell[CellGroupData[{
+
+Cell["Response parsing", "Subsection",
+ InitializationGroup->True],
+
+Cell[BoxData[
+ RowBox[{"\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{
+     RowBox[{"parseResponse", "::", "usage"}], "=", 
+     "\"\<parseResponse[xml_] converts a xml-rpc response to Mathematica \
+expression\>\""}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"parseResponse", "[", 
+     RowBox[{
+      RowBox[{"XMLObject", "[", "\"\<Document\>\"", "]"}], "[", 
+      RowBox[{"_", ",", "v_", ",", "_"}], "]"}], "]"}], ":=", 
+    RowBox[{"parseResponse", "@", "v"}]}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"parseResponse", "[", 
+     RowBox[{"XMLElement", "[", 
+      RowBox[{"\"\<methodResponse\>\"", ",", "_", ",", 
+       RowBox[{"{", "e_XMLElement", "}"}]}], "]"}], "]"}], ":=", 
+    RowBox[{"parseResponse", "@", "e"}]}], "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"parseResponse", "[", 
+     RowBox[{"XMLElement", "[", 
+      RowBox[{
+       RowBox[{
+       "\"\<params\>\"", "|", "\"\<param\>\"", "|", "\"\<value\>\"", "|", 
+        "\"\<array\>\""}], ",", "_", ",", 
+       RowBox[{"{", "e_XMLElement", "}"}]}], "]"}], "]"}], ":=", 
+    RowBox[{"parseResponse", "@", "e"}]}], "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Various", " ", "types"}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"parseResponse", "[", 
+     RowBox[{"XMLElement", "[", 
+      RowBox[{"\"\<data\>\"", ",", "_", ",", 
+       RowBox[{"e", ":", 
+        RowBox[{"{", "___XMLElement", "}"}]}]}], "]"}], "]"}], ":=", 
+    RowBox[{"parseResponse", "/@", "e"}]}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"parseResponse", "[", 
+     RowBox[{"XMLElement", "[", 
+      RowBox[{"\"\<string\>\"", ",", "_", ",", 
+       RowBox[{"{", 
+        RowBox[{"s_:", "\"\<\>\""}], "}"}]}], "]"}], "]"}], ":=", "s"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"parseResponse", "[", 
+     RowBox[{"XMLElement", "[", 
+      RowBox[{
+       RowBox[{"\"\<int\>\"", "|", "\"\<i4\>\""}], ",", "_", ",", 
+       RowBox[{"{", "s_", "}"}]}], "]"}], "]"}], ":=", 
+    RowBox[{"strToNum", "@", "s"}]}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"parseResponse", "[", 
+     RowBox[{"XMLElement", "[", 
+      RowBox[{"\"\<double\>\"", ",", "_", ",", 
+       RowBox[{"{", "s_", "}"}]}], "]"}], "]"}], ":=", 
+    RowBox[{"Internal`StringToDouble", "@", "s"}]}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"parseResponse", "[", 
+     RowBox[{"XMLElement", "[", 
+      RowBox[{"\"\<boolean\>\"", ",", "_", ",", 
+       RowBox[{"{", "\"\<1\>\"", "}"}]}], "]"}], "]"}], "=", "True"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"parseResponse", "[", 
+     RowBox[{"XMLElement", "[", 
+      RowBox[{"\"\<boolean\>\"", ",", "_", ",", 
+       RowBox[{"{", "\"\<0\>\"", "}"}]}], "]"}], "]"}], "=", "False"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"parseResponse", "[", 
+     RowBox[{"XMLElement", "[", 
+      RowBox[{"\"\<dateTime.iso8601\>\"", ",", "_", ",", 
+       RowBox[{"{", "s_", "}"}]}], "]"}], "]"}], ":=", 
+    RowBox[{"DateList", "[", "s", "]"}]}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"parseResponse", "[", 
+     RowBox[{"XMLElement", "[", 
+      RowBox[{"\"\<nil\>\"", ",", "_", ",", "_"}], "]"}], "]"}], "=", 
+    "Null"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"parseResponse", "[", 
+     RowBox[{"XMLElement", "[", 
+      RowBox[{"\"\<base64\>\"", ",", "_", ",", 
+       RowBox[{"{", "s_", "}"}]}], "]"}], "]"}], ":=", 
+    RowBox[{"(", 
+     RowBox[{
+      RowBox[{"Message", "[", 
+       RowBox[{
+        RowBox[{"XMLRPC", "::", "notimpl"}], ",", "\"\<base64\>\""}], "]"}], 
+      ";", "s"}], ")"}]}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", "Structs", " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"parseResponse", "[", 
+      RowBox[{"XMLElement", "[", 
+       RowBox[{"\"\<struct\>\"", ",", "_", ",", 
+        RowBox[{"members", ":", 
+         RowBox[{"{", "___XMLElement", "}"}]}]}], "]"}], "]"}], ":=", 
+     "\[IndentingNewLine]", 
+     RowBox[{"Cases", "[", "\[IndentingNewLine]", 
+      RowBox[{"members", ",", "\[IndentingNewLine]", 
+       RowBox[{
+        RowBox[{"XMLElement", "[", 
+         RowBox[{"\"\<member\>\"", ",", 
+          RowBox[{"{", "}"}], ",", 
+          RowBox[{"{", "\[IndentingNewLine]", 
+           RowBox[{
+            RowBox[{"XMLElement", "[", 
+             RowBox[{"\"\<name\>\"", ",", "_", ",", 
+              RowBox[{"{", "name_", "}"}]}], "]"}], ",", 
+            "\[IndentingNewLine]", 
+            RowBox[{"XMLElement", "[", 
+             RowBox[{"\"\<value\>\"", ",", "_", ",", 
+              RowBox[{"{", "e_XMLElement", "}"}]}], "]"}]}], 
+           "\[IndentingNewLine]", "}"}]}], "]"}], "\[RuleDelayed]", 
+        RowBox[{"(", 
+         RowBox[{"name", "\[Rule]", 
+          RowBox[{"parseResponse", "@", "e"}]}], ")"}]}]}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", "Errors", " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"parseResponse", "[", 
+     RowBox[{"XMLElement", "[", 
+      RowBox[{"\"\<fault\>\"", ",", "_", ",", 
+       RowBox[{"{", "e_XMLElement", "}"}]}], "]"}], "]"}], ":=", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"Message", "[", 
+         RowBox[{
+          RowBox[{"XMLRPC", "::", "fault"}], ",", "#"}], "]"}], ";", "#"}], 
+       ")"}], "&"}], "@", 
+     RowBox[{"parseResponse", "@", "e"}]}]}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"parseResponse", "[", "e_", "]"}], ":=", 
+    RowBox[{"(", 
+     RowBox[{
+      RowBox[{"Message", "[", 
+       RowBox[{
+        RowBox[{"XMLRPC", "::", "parseu"}], ",", "e"}], "]"}], ";", 
+      "$Failed"}], ")"}]}], "\[IndentingNewLine]"}]}]], "Input",
+ InitializationGroup->True]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Request encoding", "Subsection",
+ InitializationGroup->True],
+
+Cell[BoxData[
+ RowBox[{"\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{
+     RowBox[{"createRequest", "::", "usage"}], "=", 
+     "\"\<createRequest[method, args] create XML-RPC request payload\>\""}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"createRequest", "[", 
+     RowBox[{"methodName_String", ",", "args___"}], "]"}], ":=", 
+    "\[IndentingNewLine]", 
+    RowBox[{"ExportString", "[", "\[IndentingNewLine]", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"XMLObject", "[", "\"\<Document\>\"", "]"}], "[", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"XMLObject", "[", "\"\<Declaration\>\"", "]"}], "[", 
+          RowBox[{"\"\<Version\>\"", "\[Rule]", "\"\<1.0\>\""}], "]"}], "}"}],
+         ",", "\[IndentingNewLine]", 
+        RowBox[{"XMLElement", "[", 
+         RowBox[{"\"\<methodCall\>\"", ",", 
+          RowBox[{"{", "}"}], ",", "\[IndentingNewLine]", 
+          RowBox[{"{", 
+           RowBox[{
+            RowBox[{"XMLElement", "[", 
+             RowBox[{"\"\<methodName\>\"", ",", 
+              RowBox[{"{", "}"}], ",", 
+              RowBox[{"{", "methodName", "}"}]}], "]"}], ",", 
+            "\[IndentingNewLine]", 
+            RowBox[{"XMLElement", "[", 
+             RowBox[{"\"\<params\>\"", ",", 
+              RowBox[{"{", "}"}], ",", "\[IndentingNewLine]", 
+              RowBox[{"Map", "[", "\[IndentingNewLine]", 
+               RowBox[{
+                RowBox[{
+                 RowBox[{"XMLElement", "[", 
+                  RowBox[{"\"\<param\>\"", ",", 
+                   RowBox[{"{", "}"}], ",", "\[IndentingNewLine]", 
+                   RowBox[{"{", 
+                    RowBox[{"XMLElement", "[", 
+                    RowBox[{"\"\<value\>\"", ",", 
+                    RowBox[{"{", "}"}], ",", "\[IndentingNewLine]", 
+                    RowBox[{"{", 
+                    RowBox[{"encodeArgument", "[", "#", "]"}], "}"}]}], "]"}],
+                     "}"}]}], "]"}], "&"}], "\[IndentingNewLine]", ",", 
+                RowBox[{"{", "args", "}"}]}], "]"}]}], "\[IndentingNewLine]", 
+             "]"}]}], "}"}]}], "\[IndentingNewLine]", "]"}], ",", 
+        "\[IndentingNewLine]", 
+        RowBox[{"{", "}"}]}], "\[IndentingNewLine]", "]"}], ",", 
+      "\[IndentingNewLine]", "\"\<XML\>\"", ",", 
+      RowBox[{"\"\<Entities\>\"", "\[Rule]", "\"\<HTML\>\""}], ",", 
+      RowBox[{"\"\<ElementFormatting\>\"", "\[Rule]", "None"}]}], 
+     "\[IndentingNewLine]", "]"}]}], "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"encodeArgument", "::", "usage"}], "=", 
+    "\"\<encodeArgument[e] encodes Mathematica expression as XML-RPC\>\""}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Basic", " ", "types"}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"encodeArgument", "[", "s_String", "]"}], ":=", 
+    "\[IndentingNewLine]", 
+    RowBox[{"XMLElement", "[", 
+     RowBox[{"\"\<string\>\"", ",", 
+      RowBox[{"{", "}"}], ",", 
+      RowBox[{"{", "s", "}"}]}], "]"}]}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"encodeArgument", "[", "i_Integer", "]"}], ":=", 
+    "\[IndentingNewLine]", 
+    RowBox[{"XMLElement", "[", 
+     RowBox[{"\"\<int\>\"", ",", 
+      RowBox[{"{", "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"ToString", "@", "i"}], "}"}]}], "]"}]}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"encodeArgument", "[", 
+     RowBox[{"b", ":", 
+      RowBox[{"(", 
+       RowBox[{"True", "|", "False"}], ")"}]}], "]"}], ":=", 
+    RowBox[{"XMLElement", "[", 
+     RowBox[{"\"\<boolean\>\"", ",", 
+      RowBox[{"{", "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"ToString", "@", 
+        RowBox[{"Boole", "@", "b"}]}], "}"}]}], "]"}]}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"encodeArgument", "[", 
+     RowBox[{"n_", "?", "NumericQ"}], "]"}], ":=", "\[IndentingNewLine]", 
+    RowBox[{"XMLElement", "[", 
+     RowBox[{"\"\<double\>\"", ",", 
+      RowBox[{"{", "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"ToString", "@", "n"}], "}"}]}], "]"}]}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"encodeArgument", "[", 
+     RowBox[{"s", ":", 
+      RowBox[{"{", "__Rule", "}"}]}], "]"}], ":=", "\[IndentingNewLine]", 
+    RowBox[{"XMLElement", "[", 
+     RowBox[{"\"\<struct\>\"", ",", 
+      RowBox[{"{", "}"}], ",", "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"XMLElement", "[", 
+         RowBox[{"\"\<member\>\"", ",", 
+          RowBox[{"{", "}"}], ",", 
+          RowBox[{"{", "\[IndentingNewLine]", 
+           RowBox[{
+            RowBox[{"XMLElement", "[", 
+             RowBox[{"\"\<name\>\"", ",", 
+              RowBox[{"{", "}"}], ",", 
+              RowBox[{"{", "#1", "}"}]}], "]"}], ",", "\[IndentingNewLine]", 
+            RowBox[{"XMLElement", "[", 
+             RowBox[{"\"\<value\>\"", ",", 
+              RowBox[{"{", "}"}], ",", 
+              RowBox[{"{", 
+               RowBox[{"encodeArgument", "@", "#2"}], "}"}]}], "]"}]}], 
+           "\[IndentingNewLine]", "}"}]}], "]"}], "&"}], "@@@", "s"}]}], 
+     "\[IndentingNewLine]", "]"}]}], "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"encodeArgument", "[", "l_List", "]"}], ":=", 
+    "\[IndentingNewLine]", 
+    RowBox[{"XMLElement", "[", 
+     RowBox[{"\"\<array\>\"", ",", 
+      RowBox[{"{", "}"}], ",", "\[IndentingNewLine]", 
+      RowBox[{"{", 
+       RowBox[{"XMLElement", "[", 
+        RowBox[{"\"\<data\>\"", ",", 
+         RowBox[{"{", "}"}], ",", "\[IndentingNewLine]", 
+         RowBox[{
+          RowBox[{
+           RowBox[{"XMLElement", "[", 
+            RowBox[{"\"\<value\>\"", ",", 
+             RowBox[{"{", "}"}], ",", 
+             RowBox[{"{", 
+              RowBox[{"encodeArgument", "[", "#", "]"}], "}"}]}], "]"}], 
+           "&"}], "/@", "l"}]}], "\[IndentingNewLine]", "]"}], "}"}]}], 
+     "\[IndentingNewLine]", "]"}]}], "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"encodeArgument", "[", "e_", "]"}], ":=", 
+    RowBox[{"(", 
+     RowBox[{
+      RowBox[{"Message", "[", 
+       RowBox[{
+        RowBox[{"XMLRPC", "::", "unknown"}], ",", "e"}], "]"}], ";", 
+      RowBox[{"Abort", "[", "]"}]}], ")"}]}]}]}]], "Input",
+ InitializationGroup->True]
+}, Closed]],
+
+Cell[CellGroupData[{
+
+Cell["XML-RPC Call", "Subsection",
+ InitializationGroup->True],
+
+Cell[BoxData[
+ RowBox[{"\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Multiple", " ", "calls", " ", "in", " ", "one", " ", "request"}], 
+   " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"XMLRPCCall", "[", 
+     RowBox[{"url_String", ",", 
+      RowBox[{"calls", ":", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"_String", ",", "___"}], "}"}], ".."}], "}"}]}]}], "]"}], ":=",
+     "\[IndentingNewLine]", 
+    RowBox[{"Replace", "[", "\[IndentingNewLine]", 
+     RowBox[{
+      RowBox[{"XMLRPCCall", "[", 
+       RowBox[{"url", ",", "\"\<system.multicall\>\"", ",", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"{", 
+           RowBox[{
+            RowBox[{"\"\<methodName\>\"", "\[Rule]", "#1"}], ",", 
+            RowBox[{"\"\<params\>\"", "\[Rule]", 
+             RowBox[{"{", "##2", "}"}]}]}], "}"}], "&"}], "@@@", "calls"}]}], 
+       "]"}], ",", "\[IndentingNewLine]", 
+      RowBox[{
+       RowBox[{"e", ":", 
+        RowBox[{"Except", "[", 
+         RowBox[{"{", "__Rule", "}"}], "]"}]}], "\[RuleDelayed]", 
+       RowBox[{"First", "@", "e"}]}], ",", "\[IndentingNewLine]", 
+      RowBox[{"{", "1", "}"}]}], "]"}]}], "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"XMLRPCCall", "[", 
+     RowBox[{"url_String", ",", "methodName_String", ",", "params___"}], 
+     "]"}], ":=", 
+    RowBox[{"Module", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"payload", ",", "answer"}], "}"}], ",", "\[IndentingNewLine]", 
+      
+      RowBox[{"JavaBlock", "[", "\[IndentingNewLine]", 
+       RowBox[{
+        RowBox[{"payload", "=", 
+         RowBox[{"createRequest", "[", 
+          RowBox[{"methodName", ",", "params"}], "]"}]}], ";", 
+        "\[IndentingNewLine]", 
+        RowBox[{"If", "[", 
+         RowBox[{"$debug", ",", 
+          RowBox[{"Print", "[", 
+           RowBox[{"\"\<Payload: \\n\>\"", ",", "payload"}], "]"}]}], "]"}], 
+        ";", "\[IndentingNewLine]", "\[IndentingNewLine]", 
+        RowBox[{"answer", "=", 
+         RowBox[{"httpPOST", "[", 
+          RowBox[{"url", ",", "payload"}], "]"}]}], ";", 
+        "\[IndentingNewLine]", 
+        RowBox[{"If", "[", 
+         RowBox[{"$debug", ",", 
+          RowBox[{"Print", "[", 
+           RowBox[{"\"\<Received: \\n\>\"", ",", "answer"}], "]"}]}], "]"}], 
+        ";", "\[IndentingNewLine]", 
+        RowBox[{"If", "[", 
+         RowBox[{
+          RowBox[{"answer", "===", "$Failed"}], ",", 
+          RowBox[{"Return", "[", 
+           RowBox[{"answer", ",", "Module"}], "]"}]}], "]"}], ";", 
+        "\[IndentingNewLine]", "\[IndentingNewLine]", 
+        RowBox[{"answer", "=", 
+         RowBox[{"ImportString", "[", 
+          RowBox[{
+           RowBox[{"httpPOST", "[", 
+            RowBox[{"url", ",", "payload"}], "]"}], ",", "\"\<XML\>\""}], 
+          "]"}]}], ";", "\[IndentingNewLine]", 
+        RowBox[{"If", "[", 
+         RowBox[{"$debug", ",", 
+          RowBox[{"Print", "[", "\"\<Decoding answer\>\"", "]"}]}], "]"}], 
+        ";", "\[IndentingNewLine]", 
+        RowBox[{"parseResponse", "@", "answer"}]}], "\n", "]"}]}], 
+     "]"}]}]}]}]], "Input",
+ InitializationGroup->True]
+}, Closed]],
+
+Cell[CellGroupData[{
+
+Cell["End private", "Subsection",
+ InitializationGroup->True],
+
+Cell[BoxData[
+ RowBox[{"\[IndentingNewLine]", 
+  RowBox[{"End", "[", "]"}]}]], "Input",
+ InitializationGroup->True]
+}, Closed]],
+
+Cell[CellGroupData[{
+
+Cell["End package", "Subsection",
+ InitializationGroup->True],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"Protect", "[", "XMLRPCCall", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{"EndPackage", "[", "]"}]}], "Input",
+ InitializationGroup->True]
+}, Closed]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Tests", "Subsubtitle"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{"ClearAll", "[", "test", "]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Attributes", "[", "test", "]"}], "=", 
+   RowBox[{"{", "HoldFirst", "}"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Options", "[", "test", "]"}], "=", 
+   RowBox[{"{", 
+    RowBox[{"\"\<Comparator\>\"", "\[Rule]", 
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{"#1", "===", "#2"}], "&"}], ")"}]}], "}"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"test", "[", 
+   RowBox[{"expr_", ",", "expected_", ",", 
+    RowBox[{"name_:", "\"\<\>\""}], ",", 
+    RowBox[{"opts", ":", 
+     RowBox[{"OptionsPattern", "[", "]"}]}]}], "]"}], ":=", 
+  RowBox[{"With", "[", 
+   RowBox[{
+    RowBox[{"{", "\[IndentingNewLine]", 
+     RowBox[{
+      RowBox[{"res", "=", "expr"}], ",", "\[IndentingNewLine]", 
+      RowBox[{"cmp", "=", 
+       RowBox[{"OptionValue", "[", "\"\<Comparator\>\"", "]"}]}]}], 
+     "\[IndentingNewLine]", "}"}], ",", "\[IndentingNewLine]", 
+    RowBox[{"If", "[", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"cmp", "[", 
+        RowBox[{"res", ",", "expected"}], "]"}], "=!=", "True"}], ",", 
+      "\[IndentingNewLine]", 
+      RowBox[{"Print", "[", 
+       RowBox[{
+        RowBox[{"Style", "[", 
+         RowBox[{"\"\<Failed\>\"", ",", "Red"}], "]"}], ",", 
+        "\[IndentingNewLine]", "\"\<(\>\"", ",", "name", ",", "\"\<):\\n\>\"",
+         ",", "\[IndentingNewLine]", "\"\<  Expected:\>\"", ",", 
+        "\[IndentingNewLine]", "\"\<    \>\"", ",", 
+        RowBox[{"ToString", "@", "expected"}], ",", "\[IndentingNewLine]", 
+        "\"\<  Got:\>\"", ",", "\[IndentingNewLine]", "\"\<    \>\"", ",", 
+        RowBox[{"ToString", "@", "res"}]}], "\[IndentingNewLine]", "]"}], ",",
+       "\[IndentingNewLine]", 
+      RowBox[{"Print", "[", 
+       RowBox[{
+        RowBox[{"Style", "[", 
+         RowBox[{"\"\<Passed\>\"", ",", "Green"}], "]"}], ",", "\"\<(\>\"", 
+        ",", "name", ",", "\"\<)\>\""}], "]"}]}], "\[IndentingNewLine]", 
+     "]"}]}], "\[IndentingNewLine]", "]"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"xmlEqual", "[", 
+     RowBox[{"x1_String", ",", "x2_String"}], "]"}], ":=", 
+    RowBox[{"With", "[", 
+     RowBox[{
+      RowBox[{"{", "\[IndentingNewLine]", 
+       RowBox[{
+        RowBox[{"y1", "=", 
+         RowBox[{"ImportString", "[", 
+          RowBox[{"x1", ",", "\"\<XML\>\""}], "]"}]}], ",", 
+        "\[IndentingNewLine]", 
+        RowBox[{"y2", "=", 
+         RowBox[{"ImportString", "[", 
+          RowBox[{"x2", ",", "\"\<XML\>\""}], "]"}]}]}], 
+       "\[IndentingNewLine]", "}"}], ",", "\[IndentingNewLine]", 
+      RowBox[{"y1", "===", "y2"}]}], "\[IndentingNewLine]", "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"test", "[", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"XMLRPC`Private`parseResponse", "[", "\[IndentingNewLine]", 
+     RowBox[{"ImportString", "[", "\[IndentingNewLine]", 
+      RowBox[{
+      "\"\<<value><array><data><value><int>7</int></value><value><string>1247<\
+/string></value><value><string></string></value><value><array><data></data></\
+array></value><value><i4>-91</i4></value><value><double>-1.3141414</double></\
+value><value><boolean>1</boolean></value><value><boolean>0</boolean></value><\
+value><struct><member><name>a</name><value><int>3</int></value></member><\
+member><name>b</name><value><array><data><value><int>1</int></value><value><\
+int>2</int></value><value><nil/></value><value><string>z</string></value></\
+data></array></value></member></struct></value></data></array></value>\>\"", 
+       ",", "\"\<XML\>\""}], "]"}], "\[IndentingNewLine]", "]"}], ",", 
+    "\[IndentingNewLine]", 
+    RowBox[{"{", 
+     RowBox[{"7", ",", "\"\<1247\>\"", ",", "\"\<\>\"", ",", 
+      RowBox[{"{", "}"}], ",", 
+      RowBox[{"-", "91"}], ",", 
+      RowBox[{"-", "1.3141414"}], ",", "True", ",", "False", ",", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"\"\<a\>\"", " ", "->", " ", "3"}], ",", " ", 
+        RowBox[{"\"\<b\>\"", " ", "->", " ", 
+         RowBox[{"{", 
+          RowBox[{"1", ",", " ", "2", ",", "Null", ",", "\"\<z\>\""}], 
+          "}"}]}]}], "}"}]}], "}"}], ",", "\[IndentingNewLine]", 
+    "\"\<Decoding mixed type array\>\""}], "]"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"test", "[", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"XMLRPC`Private`createRequest", "[", 
+     RowBox[{"\"\<funbar\>\"", ",", "\"\<foo\>\"", ",", 
+      RowBox[{"{", 
+       RowBox[{"\"\<bar\>\"", "\[Rule]", "3"}], "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"1.3", ",", 
+        RowBox[{"-", "3"}], ",", "True"}], "}"}]}], "]"}], ",", 
+    "\[IndentingNewLine]", 
+    "\"\<<?xml \
+version='1.0'?>\\n<methodCall><methodName>funbar</methodName><params><param><\
+value><string>foo</string></value></param><param><value><struct><member><name>\
+bar</name><value><int>3</int></value></member></struct></value></param><param>\
+<value><array><data><value><double>1.3</double></value><value><int>-3</int></\
+value><value><boolean>1</boolean></value></data></array></value></param></\
+params></methodCall>\>\"", ",", "\[IndentingNewLine]", 
+    "\"\<Encoding mixed arguments\>\"", ",", "\[IndentingNewLine]", 
+    RowBox[{"\"\<Comparator\>\"", "\[Rule]", "xmlEqual"}]}], "]"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"test", "[", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"XMLRPC`Private`createRequest", "[", "\"\<funbar\>\"", "]"}], ",",
+     "\[IndentingNewLine]", 
+    "\"\<<?xml \
+version='1.0'?><methodCall><methodName>funbar</methodName><params></params></\
+methodCall>\>\"", ",", "\[IndentingNewLine]", 
+    "\"\<Argument free function\>\"", ",", "\[IndentingNewLine]", 
+    RowBox[{"\"\<Comparator\>\"", "\[Rule]", "xmlEqual"}]}], "]"}], 
+  "\[IndentingNewLine]", 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]"}], "Input"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{
+   StyleBox["\<\"Passed\"\>",
+    StripOnInput->False,
+    LineColor->RGBColor[0, 1, 0],
+    FrontFaceColor->RGBColor[0, 1, 0],
+    BackFaceColor->RGBColor[0, 1, 0],
+    GraphicsColor->RGBColor[0, 1, 0],
+    FontColor->RGBColor[0, 1, 0]], "\[InvisibleSpace]", "\<\"(\"\>", 
+   "\[InvisibleSpace]", "\<\"Decoding mixed type array\"\>", 
+   "\[InvisibleSpace]", "\<\")\"\>"}],
+  SequenceForm[
+   Style["Passed", 
+    RGBColor[0, 1, 0]], "(", "Decoding mixed type array", ")"],
+  Editable->False]], "Print"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{
+   StyleBox["\<\"Passed\"\>",
+    StripOnInput->False,
+    LineColor->RGBColor[0, 1, 0],
+    FrontFaceColor->RGBColor[0, 1, 0],
+    BackFaceColor->RGBColor[0, 1, 0],
+    GraphicsColor->RGBColor[0, 1, 0],
+    FontColor->RGBColor[0, 1, 0]], "\[InvisibleSpace]", "\<\"(\"\>", 
+   "\[InvisibleSpace]", "\<\"Encoding mixed arguments\"\>", 
+   "\[InvisibleSpace]", "\<\")\"\>"}],
+  SequenceForm[
+   Style["Passed", 
+    RGBColor[0, 1, 0]], "(", "Encoding mixed arguments", ")"],
+  Editable->False]], "Print"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{
+   StyleBox["\<\"Passed\"\>",
+    StripOnInput->False,
+    LineColor->RGBColor[0, 1, 0],
+    FrontFaceColor->RGBColor[0, 1, 0],
+    BackFaceColor->RGBColor[0, 1, 0],
+    GraphicsColor->RGBColor[0, 1, 0],
+    FontColor->RGBColor[0, 1, 0]], "\[InvisibleSpace]", "\<\"(\"\>", 
+   "\[InvisibleSpace]", "\<\"Argument free function\"\>", 
+   "\[InvisibleSpace]", "\<\")\"\>"}],
+  SequenceForm[
+   Style["Passed", 
+    RGBColor[0, 1, 0]], "(", "Argument free function", ")"],
+  Editable->False]], "Print"]
+}, Open  ]]
+}, Open  ]]
+}, Closed]]
+},
+AutoGeneratedPackage->Automatic,
+WindowSize->{740, 596},
+WindowMargins->{{46, Automatic}, {0, Automatic}},
+PrivateNotebookOptions->{"FileOutlineCache"->False},
+TrackCellChangeTimes->False,
+FrontEndVersion->"8.0 for Linux x86 (64-bit) (October 10, 2011)",
+StyleDefinitions->"Default.nb"
+]
+
