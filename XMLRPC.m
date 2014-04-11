@@ -163,7 +163,7 @@ answer=httpPOST[url,payload];
 If[$debug,Print["Received: \n",answer]];
 If[answer===$Failed,Return[answer,Module]];
 
-answer=ImportString[httpPOST[url,payload],"XML"];
+answer=ImportString[answer,"XML"];
 If[$debug,Print["Decoding answer"]];
 parseResponse@answer
 ]]
