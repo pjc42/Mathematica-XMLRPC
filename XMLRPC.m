@@ -20,39 +20,65 @@
 
 
 BeginPackage["XMLRPC`",{"JLink`"}]
+InstallJava[];
 
 
 
 Unprotect[XMLRPCCall];
+ClearAll[XMLRPCCall];
 XMLRPCCall::usage="XMLRPCCall[url, method, args...] send an XML-RPC request";
 XMLRPC::parseu="Unknown element when parsing response `1`";
+XMLRPC::encu="Unable to encode expression `1` to XML-RPC";
 XMLRPC::notimpl="Not implemented (`1`)";
 XMLRPC::httperr="HTTP request failed (`1`)";
+XMLRPCStruct::usage= "XMLRPCStruct[name1 -> value1, name2 -> value2,\[Ellipsis]] alternative to List to allow empty structs";
+XMLRPCDate::usage="XMLRPCDate[iso8601string] pass string as date type";
 
 
 
 Begin["`Private`"]
-ClearAll[parseResponse,httpPOST,strToNum,createRequest,encodeArgument]
-$packageVersion="0.1";
-$debug=False;
+ClearAll[
+parseResponse,httpPOST,strToNum,
+createRequest,encodeArgument,$debug,
+$packageVersion,$userAgent,$structHead
+];
+$packageVersion="0.2";
+$userAgent=
+StringJoin[
+"github.com/simonschmidt/Mathematica-XMLRPC"," v",$packageVersion," (Mathematica ",ToString@$VersionNumber,")"
+];
+
+(* Doesn't work properly yet, would need proper ISO8601  *)
+$parseDates=False;
+
+(* Heads used for returned types,
+structs not fully supported (see multicall stuff) *)
+$structHead=List;
+$dateHead=Identity;
+$base64Head=Identity;
+
+Attributes[$debug]={HoldAllComplete};
+$debug[___]=Null;
 
 
-(* import integers that might be negative and larger than int32 without having to use ToExpression or ImportString *)
-strToNum[s_String]:=System`Convert`TableDump`ParseTable[
-{{s}},
-{{{" "},{" "}},{"-","+"},"."},False][[1,1]]
+
 
 
 
 httpPOST::usage="httpPOST[url,body] send a POST request";
-httpPOST[url_String,body_String]:=Module[{requestJsonString,client,method,entity,responseCode,response,responseRules,responseExpression},
+httpPOST[url_String,body_String]:=
+Module[{
+client,method,entity,responseCode,
+httpclient="org.apache.commons.httpclient."},
 JavaBlock[
-client=JavaNew["org.apache.commons.httpclient.HttpClient"];
-method=JavaNew["org.apache.commons.httpclient.methods.PostMethod",url];
-entity=JavaNew["org.apache.commons.httpclient.methods.StringRequestEntity",body];
+client=JavaNew[httpclient<>"HttpClient"];
+method=JavaNew[httpclient<>"methods.PostMethod",url];
+entity=JavaNew[httpclient<>"methods.StringRequestEntity",body];
 method@setRequestEntity[entity];
 method@setRequestHeader["Content-Type","text/xml"];
+method@setRequestHeader["User-Agent",$userAgent];
 responseCode=client@executeMethod[method];
+
 If[responseCode===200,
 method@getResponseBodyAsString[]
 ,
@@ -62,8 +88,21 @@ $Failed
 ]]
 
 
+(* Parse ISO8601 date http://mathematica.stackexchange.com/a/15653/1517 not full compliant *)
+parseDateString[date_String]:=
+JavaBlock[
+LoadJavaClass["javax.xml.bind.DatatypeConverter",StaticsVisible->True];
+DateList[
+javax`xml`bind`DatatypeConverter`parseDateTime[date]@getTime[]@toString[]]
+]
 
-parseResponse::usage="parseResponse[xml_] converts a xml-rpc response to Mathematica expression";
+(* import integers that might be negative and larger than int32 without having to use ToExpression or ImportString *)
+parseNumberString[s_String]:=System`Convert`TableDump`ParseTable[
+{{s}},
+{{{" "},{" "}},{"-","+"},"."},False][[1,1]]
+
+
+parseResponse::usage="parseResponse[xml] converts an xml-rpc response XMLObject to Mathematica expression";
 parseResponse[XMLObject["Document"][_,v_,_]]:=parseResponse@v
 parseResponse[XMLElement["methodResponse",_,{e_XMLElement}]]:=parseResponse@e
 
@@ -72,102 +111,132 @@ parseResponse[XMLElement["params"|"param"|"value"|"array",_,{e_XMLElement}]]:=pa
 (* Various types *)
 parseResponse[XMLElement["data",_,e:{___XMLElement}]]:=parseResponse/@e
 parseResponse[XMLElement["string",_,{s_:""}]]:=s
-parseResponse[XMLElement["int"|"i4",_,{s_}]]:=strToNum@s
+parseResponse[XMLElement["int"|"i4",_,{s_}]]:=parseNumberString@s
 parseResponse[XMLElement["double",_,{s_}]]:=Internal`StringToDouble@s
 parseResponse[XMLElement["boolean",_,{"1"}]]=True
 parseResponse[XMLElement["boolean",_,{"0"}]]=False
-parseResponse[XMLElement["dateTime.iso8601",_,{s_}]]:=DateList[s]
+parseResponse[XMLElement["dateTime.iso8601",_,{s_}]]/;$parseDates:=$dateHead@parseDateString@s;
+parseResponse[XMLElement["dateTime.iso8601",_,{s_}]]:=$dateHead@s;
 parseResponse[XMLElement["nil",_,_]]=Null
-parseResponse[XMLElement["base64",_,{s_}]]:=(Message[XMLRPC::notimpl,"base64"];s)
-
+parseResponse[XMLElement["base64",_,{s_}]]:=(Message[XMLRPC::notimpl,"base64"];$base64Head@s)
 
 
 (* Structs *)
 parseResponse[XMLElement["struct",_,members:{___XMLElement}]]:=
-Cases[
+$structHead@@Cases[
 members,
 XMLElement["member",{},{
 XMLElement["name",_,{name_}],
 XMLElement["value",_,{e_XMLElement}]
 }]:>(name->parseResponse@e)];
 
-(* Errors *)
-parseResponse[XMLElement["fault",_,{e_XMLElement}]]:=(Message[XMLRPC::fault,#];#)&@parseResponse@e
-parseResponse[e_]:=(Message[XMLRPC::parseu,e];$Failed)
+
+parseResponse[XMLElement["fault",_,{e_XMLElement}]]:=(
+Message[XMLRPC::fault,#];
+$debug["fault",{e,#}];
+#)&@parseResponse@e;
+
+parseResponse[$Failed]=$Failed;
+
+(* Something unexpected in the XML tree *)
+parseResponse[e_]:=(Message[XMLRPC::parseu,e];e)
 
 
 
-
-
+(* Beware that encodeArgument Throws if it runs in to trouble *)
 createRequest::usage="createRequest[method, args] create XML-RPC request payload";
 createRequest[methodName_String,args___]:=
-ExportString[
-XMLObject["Document"][{XMLObject["Declaration"]["Version"->"1.0"]},
-XMLElement["methodCall",{},
-{XMLElement["methodName",{},{methodName}],
-XMLElement["params",{},
+Module[{arguments,xml},
+arguments=
+Catch[
 Map[
 XMLElement["param",{},
-{XMLElement["value",{},
-{encodeArgument[#]}]}]&
-,{args}]
-]}
-],
-{}
-],
-"XML","Entities"->"HTML","ElementFormatting"->None
+{XMLElement["value",{},{encodeArgument[#]}]}
+]&
+,{args}],
+encodeArgument];
+If[arguments===$Failed,Return[$Failed,Module]];
+
+xml=XMLObject["Document"][{XMLObject["Declaration"]["Version"->"1.0"]},
+XMLElement["methodCall",{},{
+XMLElement["methodName",{},{methodName}],
+XMLElement["params",{},arguments]
+}],
+{}];
+
+ExportString[
+xml,
+"XML",
+"Entities"->"HTML",
+"ElementFormatting"->None
 ]
+];
 
 encodeArgument::usage="encodeArgument[e] encodes Mathematica expression as XML-RPC"
 (* Basic types *)
 encodeArgument[s_String]:=
-XMLElement["string",{},{s}]
+XMLElement["string",{},{s}];
 encodeArgument[i_Integer]:=
-XMLElement["int",{},{ToString@i}]
-encodeArgument[b:(True|False)]:=XMLElement["boolean",{},{ToString@Boole@b}]
+XMLElement["int",{},{ToString@i}];
+encodeArgument[b:(True|False)]:=XMLElement["boolean",{},{ToString@Boole@b}];
 encodeArgument[n_?NumericQ]:=
-XMLElement["double",{},{ToString@n}]
+XMLElement["double",{},{ToString@n}];
+encodeArgument[XMLRPCDate[s_String]]:=
+XMLElement["dateTime.iso8601",{},{s}];
+encodeArgument[Null]=
+XMLElement["nil",{},{}];
 
-encodeArgument[s:{__Rule}]:=
+encodeArgument[s:{__Rule}|_XMLRPCStruct]:=
 XMLElement["struct",{},
+(* Apply List to not end up with XMLRPCStruct as head *)
+Apply[List,
 XMLElement["member",{},{
 XMLElement["name",{},{#1}],
 XMLElement["value",{},{encodeArgument@#2}]
 }]&@@@s
-]
+]];
+
 
 encodeArgument[l_List]:=
 XMLElement["array",{},
 {XMLElement["data",{},
 XMLElement["value",{},{encodeArgument[#]}]&/@l
 ]}
-]
+];
 
-encodeArgument[e_]:=(Message[XMLRPC::unknown,e];Abort[])
-
+encodeArgument[e_]:=(
+Message[XMLRPC::encu,e];
+Throw[$Failed,encodeArgument]);
 
 
 (* Multiple calls in one request *)
 XMLRPCCall[url_String,calls:{{_String,___}..}]:=
+With[{
+response=XMLRPCCall[url,"system.multicall",{"methodName"->#1,"params"->{##2}}&@@@calls]
+},
+$debug["Multi",response];
+
 Replace[
-XMLRPCCall[url,"system.multicall",{"methodName"->#1,"params"->{##2}}&@@@calls],
-e:Except[{__Rule}]:>First@e,
+response,
+e:Except[{__Rule}|_Rule]:>First@e,
 {1}]
+]
 
 XMLRPCCall[url_String,methodName_String,params___]:=Module[{payload,answer},
 JavaBlock[
 payload=createRequest[methodName,params];
-If[$debug,Print["Payload: \n",payload]];
+$debug["Payload",payload];
+If[payload===$Failed,Return[$Failed,Module]];
 
 answer=httpPOST[url,payload];
-If[$debug,Print["Received: \n",answer]];
-If[answer===$Failed,Return[answer,Module]];
+$debug["Received",answer];
+If[answer===$Failed,Return[$Failed,Module]];
 
 answer=ImportString[answer,"XML"];
-If[$debug,Print["Decoding answer"]];
+$debug["XMLObject",answer];
+
 parseResponse@answer
 ]]
-
 
 
 End[]
